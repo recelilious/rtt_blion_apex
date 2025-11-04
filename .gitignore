@@ -3,6 +3,8 @@ node_modules/
 
 # build outputs
 /dist/
+backend/dist/
+frontend/dist/
 /build/
 
 # logs

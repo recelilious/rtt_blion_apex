@@ -32,6 +32,32 @@ npm start
 
 - 生产服务默认端口：3000（可通过环境变量 `PORT` 覆盖）
 
+## 使用 Docker Compose 部署（静默运行）
+
+项目包含一个 `docker-compose.yml`，可以将服务打包成容器并在宿主机上静默运行。
+
+- Compose 会把容器内的 3000 端口映射到宿主机的 8081：
+  - 访问地址： http://localhost:8081/
+- 数据持久化：`./backend/backend/data` 已在 compose 中挂载为 volume 到容器内的 `/app/backend/data`，这样容器重建时排行榜数据不会丢失。
+
+使用示例命令：
+
+```bash
+# 在项目根构建并后台启动
+docker compose up --build -d
+
+# 查看运行状态
+docker compose ps
+
+# 查看日志（实时）
+docker compose logs -f
+
+# 停止并移除容器
+docker compose down
+```
+
+如果你只是想快速在本地测试构建产物（不使用 docker），也可以先运行 `npm run build` 然后 `cd backend && npm start`，服务仍然监听在 `PORT`（默认 3000）。
+
 ## 文件格式说明
 
 - `backend/data/leaderboard.txt` 文本格式：
