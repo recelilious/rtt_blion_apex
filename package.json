@@ -1,0 +1,13 @@
+{
+  "name": "rtt_blion_apex",
+  "private": true,
+  "scripts": {
+    "setup": "npm --prefix frontend install && npm --prefix backend install",
+    "dev": "concurrently -k \"cd frontend && npm run dev\" \"cd backend && npm run dev\"",
+    "build": "(cd frontend && npm run build) && (cd backend && npm run build)",
+    "start": "cd backend && npm run start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
