@@ -121,49 +121,40 @@ export default function App() {
   }, [])
 
   const canSubmit = phase === 'finished' && average != null && submittedCode != null && !submitting
+  // Dialog state for copy confirmation
+  const [showCopiedDialog, setShowCopiedDialog] = useState(false)
 
-  const submitResult = async () => {
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      // fallback to textarea + execCommand
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = text
+        ta.style.position = 'fixed'
+        ta.style.left = '-9999px'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+        return true
+      } catch {
+        try {
+          const existing = document.querySelector('textarea')
+          if (existing && existing.parentElement) existing.parentElement.removeChild(existing)
+        } catch { }
+        return false
+      }
+    }
+  }
+
+  // Perform the actual submit (POST) and navigation
+  const performSubmit = async () => {
     if (!canSubmit || average == null) return
     try {
       setSubmitting(true)
-      // try to copy the 6-digit code to clipboard before submitting
-      if (submittedCode) {
-        const copyToClipboard = async (text: string) => {
-          try {
-            await navigator.clipboard.writeText(text)
-            return true
-          } catch {
-            // fallback to textarea + execCommand
-            try {
-              const ta = document.createElement('textarea')
-              ta.value = text
-              ta.style.position = 'fixed'
-              ta.style.left = '-9999px'
-              document.body.appendChild(ta)
-              ta.select()
-              document.execCommand('copy')
-              document.body.removeChild(ta)
-              return true
-            } catch {
-              try {
-                // ensure removal if something failed
-                const existing = document.querySelector('textarea')
-                if (existing && existing.parentElement) existing.parentElement.removeChild(existing)
-              } catch { }
-              return false
-            }
-          }
-        }
-
-        const copied = await copyToClipboard(submittedCode)
-        if (copied) {
-          // show a clear copied message before submitting
-          setMessage(`已复制凭证：${submittedCode}`)
-        } else {
-          setMessage(`复制凭证失败，正在提交...（请手动保存：${submittedCode}）`)
-        }
-      }
-
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -171,15 +162,29 @@ export default function App() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || '提交失败')
-      // Keep the code the same as pre-allocated; backend echoes the same code
       setSubmittedCode(data.code)
       setLeaderboard(data.leaderboard)
       setMessage(`提交成功！你的代号：${data.code}`)
+      setShowCopiedDialog(false)
       navigate('/leaderboard')
     } catch (e: any) {
       alert(e.message || '提交失败')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // Copy the code and show a persistent dialog to let the user confirm submission
+  const handleCopyAndOpenDialog = async () => {
+    if (!canSubmit || !submittedCode) return
+    const copied = await copyToClipboard(submittedCode)
+    if (copied) {
+      setMessage(`已复制凭证：${submittedCode}`)
+      setShowCopiedDialog(true)
+    } else {
+      // If copy fails, still allow immediate submit but inform the user
+      setMessage(`复制凭证失败，正在提交...（请手动保存：${submittedCode}）`)
+      await performSubmit()
     }
   }
 
@@ -255,8 +260,22 @@ export default function App() {
                 <button
                   className="px-4 py-2 bg-red-600 text-white rounded disabled:opacity-60"
                   disabled={!canSubmit}
-                  onClick={(e) => { e.stopPropagation(); submitResult() }}
+                  onClick={(e) => { e.stopPropagation(); handleCopyAndOpenDialog() }}
                 >复制凭证、提交成绩并查看排行榜</button>
+              </div>
+            </div>
+          )}
+
+          {showCopiedDialog && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center" onClick={e => e.stopPropagation()}>
+              <div className="bg-white rounded p-6 max-w-sm w-[90%]">
+                <h3 className="text-lg font-bold mb-2">已复制凭证</h3>
+                <div className="font-mono text-2xl tracking-widest mb-4">{submittedCode}</div>
+                <p className="text-sm text-gray-700 mb-4">凭证已复制到剪贴板。请点击下方按钮提交成绩并查看排行榜，或取消返回。</p>
+                <div className="flex justify-end gap-2">
+                  <button className="px-3 py-2 border rounded" onClick={(e) => { e.stopPropagation(); setShowCopiedDialog(false) }}>取消</button>
+                  <button className="px-3 py-2 bg-red-600 text-white rounded disabled:opacity-60" onClick={(e) => { e.stopPropagation(); performSubmit() }} disabled={!canSubmit || submitting}>提交成绩并查看排行榜</button>
+                </div>
               </div>
             </div>
           )}

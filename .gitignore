@@ -16,6 +16,7 @@ pnpm-debug.log*
 # editor
 .vscode/
 .DS_Store
+.github/
 
 # output
 backend/backend/data/
