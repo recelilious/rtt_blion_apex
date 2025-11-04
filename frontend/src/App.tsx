@@ -157,9 +157,10 @@ export default function App() {
 
         const copied = await copyToClipboard(submittedCode)
         if (copied) {
-          setMessage(`已复制代号：${submittedCode}，正在提交...`)
+          // show a clear copied message before submitting
+          setMessage(`已复制凭证：${submittedCode}`)
         } else {
-          setMessage(`复制代号失败，正在提交...（请手动保存：${submittedCode}）`)
+          setMessage(`复制凭证失败，正在提交...（请手动保存：${submittedCode}）`)
         }
       }
 

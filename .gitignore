@@ -16,3 +16,6 @@ pnpm-debug.log*
 # editor
 .vscode/
 .DS_Store
+
+# output
+backend/backend/data/
