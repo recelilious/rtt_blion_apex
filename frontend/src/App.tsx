@@ -126,6 +126,43 @@ export default function App() {
     if (!canSubmit || average == null) return
     try {
       setSubmitting(true)
+      // try to copy the 6-digit code to clipboard before submitting
+      if (submittedCode) {
+        const copyToClipboard = async (text: string) => {
+          try {
+            await navigator.clipboard.writeText(text)
+            return true
+          } catch {
+            // fallback to textarea + execCommand
+            try {
+              const ta = document.createElement('textarea')
+              ta.value = text
+              ta.style.position = 'fixed'
+              ta.style.left = '-9999px'
+              document.body.appendChild(ta)
+              ta.select()
+              document.execCommand('copy')
+              document.body.removeChild(ta)
+              return true
+            } catch {
+              try {
+                // ensure removal if something failed
+                const existing = document.querySelector('textarea')
+                if (existing && existing.parentElement) existing.parentElement.removeChild(existing)
+              } catch { }
+              return false
+            }
+          }
+        }
+
+        const copied = await copyToClipboard(submittedCode)
+        if (copied) {
+          setMessage(`已复制代号：${submittedCode}，正在提交...`)
+        } else {
+          setMessage(`复制代号失败，正在提交...（请手动保存：${submittedCode}）`)
+        }
+      }
+
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -217,8 +254,8 @@ export default function App() {
                 <button
                   className="px-4 py-2 bg-red-600 text-white rounded disabled:opacity-60"
                   disabled={!canSubmit}
-                  onClick={submitResult}
-                >提交成绩并查看排行榜</button>
+                  onClick={(e) => { e.stopPropagation(); submitResult() }}
+                >复制凭证、提交成绩并查看排行榜</button>
               </div>
             </div>
           )}
